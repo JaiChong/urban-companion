@@ -1,11 +1,11 @@
-/* WebCrawl.java
+/* P2: CityPlanner.java
  * CSS 436: Cloud Computing
- * Boilerplate from Prof. Dimpsey
- * Completed by Jaimi Chong in Jan. 2024
+ * Based on P1: WebCrawl.java by Prof. Dimpsey and Jaimi Chong
+ * Completed by Jaimi Chong in Feb. 2024
  * 
  * Testing:
- * $ javac WebCrawl.java
- * $ java WebCrawl (String start_URL) (int num_hops)
+ * $ javac CityPlanner.java
+ * $ java CityPlanner /*(String start_URL) (int num_hops)*\/
  */
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class WebCrawl
+public class CityPlanner
 {
   // 0. Grader vars
   public static boolean treat_all_as_having_trailing_backslashes = false;
