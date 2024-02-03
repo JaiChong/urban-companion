@@ -40,11 +40,11 @@ public class MyCity
   {
     // 1. PROGRAM SETUP
     process_args(args);
-    print_intro();
 
-    // 2. API CALLS
-    call_apis();
-    print_res();
+    // 2. API HANDLING
+    if (http_call(URL_API_WEATHER))     parse_print_resp("weather");
+    if (http_call(URL_API_HOTELS))      parse_print_resp("hotels");
+    if (http_call(URL_API_RESTAURANTS)) parse_print_resp("restaurants");
   }
 
 
@@ -52,53 +52,40 @@ public class MyCity
   // 0. RESOURCES ||
   //===============
 
-  //==========================
-  // 0.1. Class-scope Vars //
-  //========================
+  //===============================
+  // 0.1. Class-scope Variables //
+  //=============================
 
   // Program args
-  public static String location;
+  private static String secret;
+  public  static String city;
   
+  // API URLs
+  public static final String URL_API_WEATHER     = "http://api.openweather.org/data/2.5/weather?q=&appid=";
+  public static final String URL_API_HOTELS      = "";
+  public static final String URL_API_RESTAURANTS = "";
+
   // HTTP calls
-  public static HttpClient client;
-  public static HttpRequest request;
-  public static boolean loop_calls;
-  public static HttpResponse<String> response;
-  public static int status;
+  public static HttpClient           client;
+  public static HttpRequest          req;
+  public static HttpResponse<String> resp;
+  public static int                  resp_status;
   
-  // Storage for backtracking
-  public static String curr_base_url;
-  public static String curr_url;
+
+  //=============================
+  // 0.2. HTTP Call Functions //
+  //===========================
   
-  // Prints
-  public static String stop_reason = "reaching the num_hops limit";
-
-
-  //=========================
-  // 0.2. HTTP Call Funcs //
-  //=======================
-
-  public static String normalize_url (String url)
+  public static boolean http_call(String url)
   {
-    if (url.charAt(4) != 's')
-      url = url.substring(0, 4) + 's' + url.substring(4);
-    if (url.charAt(url.length()-1) != '/')
-      url += '/';
-    return url;
+    // System.out.println("\nCalling " + api_name + " ...");
+    client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
+    req     = HttpRequest.newBuilder().uri(URI.create(url + city + "&appid=" + secret)).build();
+    update_resp_exp_backoff();
+    return resp_status >= 200 && resp_status < 400;
   }
 
-  public static boolean http_call()
-  {
-    System.out.println("\nMaking HTTP Call...");
-    client = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
-    request = HttpRequest.newBuilder().uri(URI.create("http://google.com")).build();  //todo
-    
-    curr_url = normalize_url(request.uri().toString());    // 2.1 Treats URLs as HTTPS and having a trailing slash
-    status = send_req_and_get_status_code();               // 2.2 Retries Server Errors once
-    return status >= 200 && status < 400;
-  }
-
-  public static int send_req_and_get_status_code()
+  public static void update_resp_exp_backoff()
   {
     // client.send() -> Exceptions
     try
@@ -107,14 +94,13 @@ public class MyCity
       int retries = 0;
       do
       {
-        response = client.send(request, BodyHandlers.ofString());
-        status = response.statusCode();
-        if (status >= 500) retries++;
+        resp = client.send(req, BodyHandlers.ofString());
+        resp_status = resp.statusCode();
+        if (resp_status >= 500) retries++;
       }
       while (retries == 1);
     }
     catch (IOException | InterruptedException e) { System.out.println(e.getMessage()); System.exit(1); }
-    return status;
   }
 
 
@@ -125,38 +111,37 @@ public class MyCity
   public static void process_args(String[] args)
   {
     // Ensure correct num of args
-    if (args.length != 1)
+    if (args.length != 2)
     {
       System.out.println("Error: Incorrect number of arguments.");
       System.exit(1);
     }
     
     // Store args
-    location = args[0];
+    MyCity.secret = args[0];
+    city          = args[1];
   }
 
-  public static void print_intro() {}
 
+  //==================
+  // 2. API HANDLING ||
+  //==================
 
-  //===============
-  // 2. API CALLS ||
-  //===============
-
-  public static void call_apis()
+  public static void parse_print_resp(String api_type)
   {
-    // Console.WriteLine("Making the API Call...");
-    // using (var client = new HttpClient())
-    // {
-    //   client.BaseAddress = new Uri ("http://api.openweather.org/data/2.5/");
-    //   HttpResponseMessage response = client.GetAsync("weather?q=Chicago&appid=<secret>").Result();
-    //   response.EnsureSuccessStatusCode();
-    //   string result = response.Content.ReadAsStringAsync().Result;
-    //   Console.WriteLine("Result: " + result);
-    //   Rootobject weatherDetails = JsonConvert.DeserializeObject<Rootobject>(result)!;
-    //   int todayTemp = (int) weatherDetails.main.temp;
-    //   if (todayTemp > 55) Console.WriteLine("surprisingly warm today");
-    // }
-  }
+    // RootObject weatherDetails = JsonConvert.DeserializeObject<RootObject>(response)!;
+    switch (api_type)
+    {
+      case "weather":
+        // int todayTemp = (int) weatherDetails.main.temp;
+        // if (todayTemp > 55) Console.WriteLine("surprisingly warm today");
+        break;
 
-  public static void print_res() {}
+      case "hotels":
+        break;
+      
+      case "restaurants":
+        break;
+    }
+  }
 }
