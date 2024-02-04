@@ -16,6 +16,18 @@
  *  https://docs.developer.yelp.com/reference/v3_events_search
  *  https://developer.tomtom.com/traffic-api/documentation/traffic-incidents/incident-details
  * 
+ * URL Documentation:
+ *  https://docs.oracle.com/javase/8/docs/api/java/net/URLEncoder.html
+ * 
+ * GSON Documentation:
+ *  https://www.geeksforgeeks.org/how-to-install-gson-module-in-java/
+ *  https://javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/package-summary.html
+ *  https://javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/JsonParser.html
+ *  https://javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/JsonObject.html
+ *  https://javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/JsonElement.html
+ *  https://javadoc.io/doc/com.google.code.gson/gson/latest/com.google.gson/com/google/gson/JsonArray.html
+ *  https://javadoc.io/static/com.google.code.gson/gson/2.10.1/com.google.gson/com/google/gson/stream/JsonReader.html
+ * 
  * Based on:
  *  ../p1/WebCrawl.java by Prof. Dimpsey, Jaimi Chong
  *  10 LOC Boilerplate  by Prof. Dimpsey
@@ -212,11 +224,11 @@ public class MyCity
   public static void call_parse_apis()
   {
     client  = HttpClient.newBuilder().version(Version.HTTP_1_1).followRedirects(Redirect.ALWAYS).build();
-    for (int i = 2; i < 4; i++) switch (i)
+    for (int i = 0; i < 4; i++) switch (i)
     {
       case 0:
         http_build_req_v1(i, city, null, null, null, api_keys[i]);
-        if (http_call(i))
+        if (http_call(i))   // Fails: not HTTPS
         {
           System.out.println(resp.toString());
           lat = "90";
@@ -236,7 +248,7 @@ public class MyCity
         // int todayTemp = (int) weatherDetails.main.temp;
         // if (todayTemp > 55) {Console.WriteLine("surprisingly warm today");}
         http_build_req_v1(i, lat, lon, null, null, api_keys[i]);
-        if (http_call(i))
+        if (http_call(i))   // Fails: not HTTPS
         {
           System.out.println(resp.toString());
           results += String.format
@@ -254,7 +266,7 @@ public class MyCity
 
       case 2:
         http_build_req_v2(i, lat, lon, api_keys[i]);
-        if (http_call(i))
+        if (http_call(i))   // Fails: status 400
         {
           System.out.println(resp.toString());
           results += String.format
@@ -273,7 +285,7 @@ public class MyCity
           Double.toString(Double.parseDouble(lat)-0.5), Double.toString(Double.parseDouble(lon)-0.5),
           Double.toString(Double.parseDouble(lat)+0.5), Double.toString(Double.parseDouble(lon)+0.5)
         );
-        if (http_call(i))
+        if (http_call(i))   // Fails: illegal char 129
         {
           System.out.println(resp.toString());
           results += String.format
