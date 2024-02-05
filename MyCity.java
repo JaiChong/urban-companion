@@ -50,6 +50,10 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -79,28 +83,7 @@ public class MyCity
   // 0.1. Class-scope Variables //
   //=============================
 
-  // APIs
-  public  static String[] api_nams = 
-  {
-    "OpenWeatherMap Geocoding",
-    "OpenWeatherMap Current Weather Data",
-    "Yelp Fusion",
-    "TomTom Traffic Incident Details"
-  };
-  public  static String[] api_urls =
-  {
-    "http://api.openweather.org/geo/1.0/direct?q=%s&limit=1&appid=%s%s%s%s",
-    "http://api.openweather.org/data/2.5/weather?lat=%s&lon=%s&appid=%s%s%s",
-    "https://api.yelp.com/v3/categories/events?sort_on=time_start&latitude=%s&longitude=%s",
-    // "https://api.yelp.com/v3/categories/restaurants?latitude=%s&longitude=%s",
-    "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields={incidents{properties{iconCategory,magnitudeOfDelay,events{code,description,iconCategory},startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime}}}&language=en-US&timeValidityFilter=present,future"
-  };
-  private static String[] api_keys = new String[4]; // { null, args[0], args[1], args[2] }
-  public  static String   city;                     // args[3]
-  public  static String   lat = "0";                // City Latitude
-  public  static String   lon = "0";                // City Longitude
-
-  // HTTP calls
+  // HTTP Calls
   public static HttpClient           client;
   public static HttpRequest          req;
   public static HttpResponse<String> resp;
@@ -108,40 +91,66 @@ public class MyCity
   public static final int            RETRY_BASE = 2;
   public static final int            RETRY_MAX  = 4;
 
-  // Results
-  public static String results = "\n\n//============" +
-                                     "// RESULTS //" +
-                                     "//==========";
+  // API Requests
+  public static String[] api_nams = 
+  {
+    "OpenWeatherMap Geocoding",
+    "OpenWeatherMap Current Weather Data",
+    "Yelp Fusion",
+    "TomTom Traffic Incident Details"
+  };
+  public static String[] api_urls =
+  {
+    "https://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&appid=%s%s%s%s",
+    "https://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&appid=%s%s%s",
+    "https://api.yelp.com/v3/events?sort_on=time_start&latitude=%s&longitude=%s",
+    // "https://api.yelp.com/v3/categories/events?sort_on=time_start&latitude=%s&longitude=%s",
+    // "https://api.yelp.com/v3/categories/restaurants?latitude=%s&longitude=%s",
+    "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=&rcub;incidents&rcub;properties&rcub;iconCategory,magnitudeOfDelay,events&rcub;code,description,iconCategory&lcub;,startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime&lcub;&lcub;&lcub;&language=en-US&timeValidityFilter=present,future"
+  };
+  private static String[] api_keys = new String[4]; // { null, args[0], args[1], args[2] }
+  public  static String   city;                     // args[3]
+  public  static String   lat      = "-1";
+  public  static String   lon      = "-1";
+  
+  // API Responses
+  public static Map<String, String> api_elements = new HashMap<String, String>();
+  public static String              results      = 
+    "\n\n//============\n"
+    +   "// RESULTS // \n"
+    +   "//==========  \n"  ;
 
   //=============================
   // 0.2. HTTP Call Functions //
   //===========================
   
-  public static void http_build_req_v1 (int num, String arg1, String arg2, String arg3, String arg4, String arg5)
+  public static void http_build_req (int num, String arg1, String arg2, String arg3, String arg4, String arg5)
   {
     req = HttpRequest.newBuilder()
-            .uri(URI.create(String.format(api_urls[num], arg1, arg2, arg3, arg4, arg5)))
-            .header("accept", "application/json")
-            .build();
+      .uri(URI.create(String.format(api_urls[num], arg1, arg2, arg3, arg4, arg5)))
+      .header("Accept", "application/json")
+      .GET()
+      .build();
   }
 
-  public static void http_build_req_v2 (int num, String arg1, String arg2, String hdr_key)
+  public static void http_build_req_Yelp (int num, String arg1, String arg2, String hdr_key)
   {
     req = HttpRequest.newBuilder()
-            .uri(URI.create(String.format(api_urls[num], arg1, arg2)))
-            .header("accept", "application/json")
-            .header("Authorization", hdr_key)
-            .build();
+      .uri(URI.create(String.format(api_urls[num], arg1, arg2)))
+      .header("Accept", "application/json")
+      .header("Authorization", "Bearer " + hdr_key)
+      .GET()
+      .build();
   }
 
   public static boolean http_call(int num)
   {
-    System.out.println("\nCalling " + api_nams[num] + "...");
+    System.out.println("\nCalling " + api_nams[num] + " ...");
     
     // try client.send()
+    // for (4 retries or until success)
     try
     {
-      // for (4 retries or until success)
       for (int retry = 0; retry <= RETRY_MAX; retry++)
       {
         resp = client.send(req, BodyHandlers.ofString());
@@ -173,6 +182,22 @@ public class MyCity
     return resp_status < 400;
   }
 
+  //==============================
+  // 0.3. RegEx Parse Function //
+  //============================
+
+  public static void parse_elements(String... elements)
+  {
+    Pattern pattern;
+    Matcher matcher;
+    for (String element : elements)
+    {
+      pattern = Pattern.compile(element +"\":\"?(.+?)\"?(?:,|}|])");
+      matcher = pattern.matcher(resp.body());
+      if (matcher.find()) { api_elements.put(element, matcher.group(1)); }
+    }
+  }
+
 
   //===================
   // 1. PROGRAM SETUP ||
@@ -195,25 +220,25 @@ public class MyCity
   public static void print_intro()
   {
     System.out.println("\n//==========");
-    System.out.println(  "// INTRO //");
-    System.out.println(  "//========");
+    System.out.println(  "// INTRO //" );
+    System.out.println(  "//========"  );
 
-    System.out.println("\nMyCity.java");
-    System.out.println(  " Inp:  U.S. city name (spaces -> underscores)");
-    System.out.println(  " Outp: Local info from 3 independent APIs");
+    System.out.println("\nMyCity.java"                                                                               );
+    System.out.println(  " Inp:  U.S. city name (spaces -> underscores)"                                             );
+    System.out.println(  " Outp: Local info from 3 independent APIs"                                                 );
     System.out.printf (  " APIs: %s & %s, %s, %s\n", api_nams[0], api_nams[1].substring(15), api_nams[2], api_nams[3]);
-    System.out.println(  " Algo: Exponential Backoff (delay between calls increases exponentially)");
-    System.out.printf (  " Vars: RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX);
+    System.out.println(  " Algo: Exponential Backoff (delay between calls increases exponentially)"                  );
+    System.out.printf (  " Vars: RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX                               );
 
-    System.out.println("\nHTTP Response Status Codes Key:");
-    System.out.println(  " Accepted: 100s=Informtional,  200s=Success,  300s=Redirects");
-    System.out.println(  " Rejected: 400s=ClientErr");
-    System.out.println(  " Retried:  429 =TooManyReqs,   500s=ServerErr");
+    System.out.println("\nHTTP Response Status Codes Key:"                              );
+    System.out.println(  " Accepted: 100s=Informtional,  200s=Success,   300s=Redirects");
+    System.out.println(  " Rejected: 400s=ClientErr"                                    );
+    System.out.println(  " Retried:  429 =TooManyReqs,   500s=ServerErr"                );
 
 
     System.out.println("\n\n//==============");
-    System.out.println(    "// API CALLS //");
-    System.out.println(    "//============");
+    System.out.println(    "// API CALLS //" );
+    System.out.println(    "//============"  );
   }
 
 
@@ -223,7 +248,7 @@ public class MyCity
 
   public static void call_parse_apis()
   {
-    client  = HttpClient.newBuilder().version(Version.HTTP_1_1).followRedirects(Redirect.ALWAYS).build();
+    client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
       // TODO: GSON PSEUDO
@@ -231,72 +256,122 @@ public class MyCity
       // int todayTemp = (int) weatherDetails.main.temp;
       // if (todayTemp > 55) {Console.WriteLine("surprisingly warm today");}
 
-      case 0:
-        http_build_req_v1(i, city, null, null, null, api_keys[i]);
-        if (http_call(i))   // FIXME: IOException (because not HTTPS?)
+      case 0:   // OpenWeatherMap Geocoding
+        http_build_req(i, city, "", "", "", api_keys[1]);
+        results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1]);
+        if (http_call(i))
         {
-          System.out.println(resp.toString());
-          lat = "90";
-          lon = "90";
+          parse_elements("state", "country", "lat", "lon");
+          lat = api_elements.get("lat");
+          lon = api_elements.get("lon");
           results += String.format
           (
-            "\n%s & %s:\n"
-            + " Latitude:          %s\n"
-            + " Longitude:         %s\n",
-            api_nams[0], api_nams[1].substring(15), lat, lon
+              " Location:         %s, %s, %s\n"
+            + " Coordinates:      (%s, %s)  \n",
+
+            city,         api_elements.get("state"),  api_elements.get("country"),
+            lat,          lon
           );
         }
+        else { results += " Call failed with status " + resp_status + "."; }
         break;
         
-      case 1:
-        http_build_req_v1(i, lat, lon, null, null, api_keys[i]);
-        if (http_call(i))   // FIXME: IOException (because not HTTPS?)
+        case 1:   // OpenWeatherMap Current Weather Data
+        http_build_req(i, lat, lon, "", "", api_keys[1]);
+        if (http_call(i))
         {
-          System.out.println(resp.toString());
+          parse_elements("description", "humidity", "temp_max", "temp", "temp_min");
           results += String.format
           (
-              " Curr. Weather:     %s\n"
-            + " Chance of Rain:    %s\n"
-            + " Humidity:          %s\n"
-            + " High  Temperature: %s\n"
-            + " Curr. Temperature: %s\n"
-            + " Low   Temperature: %s\n",
-            "weath", "rain", "humid", "hi", "curr", "lo"
+            " Current Weather:  %s  \n"
+          + " Temp, High:       %f°F\n"
+          + " Temp, Current:    %f°F\n"
+          + " Temp, Low:        %f°F\n"
+          + " Humidity:         %s%%\n",
+
+            api_elements.get("description"),
+            ((Double.parseDouble(api_elements.get("temp_max")) * 9 / 5) - 459.67),
+            ((Double.parseDouble(api_elements.get("temp"    )) * 9 / 5) - 459.67),
+            ((Double.parseDouble(api_elements.get("temp_min")) * 9 / 5) - 459.67),
+            api_elements.get("humidity")
           );
         }
+        else { results += " Call failed with status " + resp_status + "."; }
         break;
 
-      case 2:
-        http_build_req_v2(i, lat, lon, api_keys[i]);
-        if (http_call(i))   // FIXME: resp_status = 400
+      case 2:   // Yelp Fusion
+        // // Provided call syntax, using a package
+        // OkHttpClient client = new OkHttpClient();
+        // Request request = new Request.Builder()
+        //   .url("https://api.yelp.com/v3/events?limit=3&sort_by=desc&sort_on=popularity")
+        //   .get()
+        //   .addHeader("accept", "application/json")
+        //   .build();
+        // Response response = client.newCall(request).execute();
+
+        // // Debug
+        // req = HttpRequest.newBuilder()
+        //   .uri(URI.create("https://api.yelp.com/v3/events?locale=en_US"))
+        //   .GET()
+        //   .header("User-Agent", "")            // didn't work
+        //   .header("Accept", "application/json")
+        //   .header("Authorization", "Bearer "+api_keys[i])
+        //   .build();
+        // try
+        // {
+        //   resp = client.send(req, BodyHandlers.ofString());
+        //   resp_status = resp.statusCode();
+        //   System.out.println(resp_status);    // Breakpoint here
+        // }
+        // catch (IOException e)          { System.out.println("IO");          System.exit(1); }
+        // catch (InterruptedException e) { System.out.println("Interrupted"); System.exit(1); }
+
+        http_build_req_Yelp(i, lat, lon, api_keys[i]);
+        results += String.format("\n%s:\n", api_nams[i]);
+        if (http_call(i))   // FIXME: 403 Forbidden access to resource
         {
-          System.out.println(resp.toString());
+          // System.out.println(resp.body());
+          parse_elements("event", "event", "event");
           results += String.format
           (
-            "\n%s:\n"
+              " Event: %s\n"
+            + " Event: %s\n"
             + " Event: %s\n",
-            api_nams[i], "event"
+
+            api_elements.get("event"),
+            api_elements.get("event"),
+            api_elements.get("event")
           );
         }
+        else { results += " Call failed with status " + resp_status + "."; }
         break;
 
-      case 3:
-        http_build_req_v1
+      case 3:   // TomTom Traffic Incident Details
+        double num_lat = Double.parseDouble(lat);
+        double num_lon = Double.parseDouble(lon);
+        http_build_req
         (
-          i,                                            api_keys[i],
-          Double.toString(Double.parseDouble(lat)-0.5), Double.toString(Double.parseDouble(lon)-0.5),
-          Double.toString(Double.parseDouble(lat)+0.5), Double.toString(Double.parseDouble(lon)+0.5)
+          i,                            api_keys[i],
+          Double.toString(num_lat-0.5), Double.toString(num_lat-0.5),
+          Double.toString(num_lat+0.5), Double.toString(num_lon+0.5)
         );
-        if (http_call(i))   // FIXME: IllegalCharacterException at comma after "iconCategories" (not the first nor last comma!) in "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields={incidents{properties{iconCategory,magnitudeOfDelay,events{code,description,iconCategory},startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime}}}&language=en-US&timeValidityFilter=present,future"
+        results += String.format("\n%s:\n", api_nams[i]);
+        if (http_call(i))   // FIXME: 403 Forbidden access to resource
         {
-          System.out.println(resp.toString());
+          // System.out.println(resp.body());
+          parse_elements("event", "event", "event");
           results += String.format
           (
-            "\n%s\n"
+              " Event: %s\n"
+            + " Event: %s\n"
             + " Event: %s\n",
-            api_nams[i], "event"
+
+            api_elements.get("event"),
+            api_elements.get("event"),
+            api_elements.get("event")
           );
         }
+        else { results += " Call failed with status " + resp_status + "."; }
         break;
         
     }
