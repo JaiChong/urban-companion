@@ -39,11 +39,9 @@
 
 import java.io.Console;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.Double;
 import java.lang.Thread;
 import java.net.http.HttpClient;
-import java.net.http.HttpClient.Version;
 import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -54,11 +52,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 
 public class MyCity
@@ -148,9 +141,9 @@ public class MyCity
     System.out.println("\nCalling " + api_nams[num] + " ...");
     
     // try client.send()
-    // for (4 retries or until success)
     try
     {
+      // for (4 retries or until success)
       for (int retry = 0; retry <= RETRY_MAX; retry++)
       {
         resp = client.send(req, BodyHandlers.ofString());
@@ -251,11 +244,6 @@ public class MyCity
     client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
-      // TODO: GSON PSEUDO
-      // RootObject weatherDetails = JsonConvert.DeserializeObject<RootObject>(response)!;
-      // int todayTemp = (int) weatherDetails.main.temp;
-      // if (todayTemp > 55) {Console.WriteLine("surprisingly warm today");}
-
       case 0:   // OpenWeatherMap Geocoding
         http_build_req(i, city, "", "", "", api_keys[1]);
         results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1]);
@@ -331,19 +319,19 @@ public class MyCity
         if (http_call(i))   // FIXME: 403 Forbidden access to resource
         {
           // System.out.println(resp.body());
-          parse_elements("event", "event", "event");
+          parse_elements("element1", "element2", "element3");
           results += String.format
           (
-              " Event: %s\n"
-            + " Event: %s\n"
-            + " Event: %s\n",
+              " Element1: %s\n"
+            + " Element2: %s\n"
+            + " Element3: %s\n",
 
-            api_elements.get("event"),
-            api_elements.get("event"),
-            api_elements.get("event")
+            api_elements.get("element1"),
+            api_elements.get("element2"),
+            api_elements.get("element3")
           );
         }
-        else { results += " Call failed with status " + resp_status + "."; }
+        else { results += " Call failed with status " + resp_status + ".\n"; }
         break;
 
       case 3:   // TomTom Traffic Incident Details
@@ -359,16 +347,16 @@ public class MyCity
         if (http_call(i))   // FIXME: 403 Forbidden access to resource
         {
           // System.out.println(resp.body());
-          parse_elements("event", "event", "event");
+          parse_elements("element1", "element2", "element3");
           results += String.format
           (
-              " Event: %s\n"
-            + " Event: %s\n"
-            + " Event: %s\n",
+              " Element1: %s\n"
+            + " Element2: %s\n"
+            + " Element3: %s\n",
 
-            api_elements.get("event"),
-            api_elements.get("event"),
-            api_elements.get("event")
+            api_elements.get("element1"),
+            api_elements.get("element2"),
+            api_elements.get("element3")
           );
         }
         else { results += " Call failed with status " + resp_status + "."; }
