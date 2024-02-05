@@ -226,9 +226,14 @@ public class MyCity
     client  = HttpClient.newBuilder().version(Version.HTTP_1_1).followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
+      // TODO: GSON PSEUDO
+      // RootObject weatherDetails = JsonConvert.DeserializeObject<RootObject>(response)!;
+      // int todayTemp = (int) weatherDetails.main.temp;
+      // if (todayTemp > 55) {Console.WriteLine("surprisingly warm today");}
+
       case 0:
         http_build_req_v1(i, city, null, null, null, api_keys[i]);
-        if (http_call(i))   // Fails: not HTTPS
+        if (http_call(i))   // FIXME: IOException (because not HTTPS?)
         {
           System.out.println(resp.toString());
           lat = "90";
@@ -244,11 +249,8 @@ public class MyCity
         break;
         
       case 1:
-        // RootObject weatherDetails = JsonConvert.DeserializeObject<RootObject>(response)!;
-        // int todayTemp = (int) weatherDetails.main.temp;
-        // if (todayTemp > 55) {Console.WriteLine("surprisingly warm today");}
         http_build_req_v1(i, lat, lon, null, null, api_keys[i]);
-        if (http_call(i))   // Fails: not HTTPS
+        if (http_call(i))   // FIXME: IOException (because not HTTPS?)
         {
           System.out.println(resp.toString());
           results += String.format
@@ -266,7 +268,7 @@ public class MyCity
 
       case 2:
         http_build_req_v2(i, lat, lon, api_keys[i]);
-        if (http_call(i))   // Fails: status 400
+        if (http_call(i))   // FIXME: resp_status = 400
         {
           System.out.println(resp.toString());
           results += String.format
@@ -285,7 +287,7 @@ public class MyCity
           Double.toString(Double.parseDouble(lat)-0.5), Double.toString(Double.parseDouble(lon)-0.5),
           Double.toString(Double.parseDouble(lat)+0.5), Double.toString(Double.parseDouble(lon)+0.5)
         );
-        if (http_call(i))   // Fails: illegal char 129
+        if (http_call(i))   // FIXME: IllegalCharacterException at comma after "iconCategories" (not the first nor last comma!) in "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields={incidents{properties{iconCategory,magnitudeOfDelay,events{code,description,iconCategory},startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime}}}&language=en-US&timeValidityFilter=present,future"
         {
           System.out.println(resp.toString());
           results += String.format
