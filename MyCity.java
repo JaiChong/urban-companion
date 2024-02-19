@@ -46,7 +46,7 @@ public class MyCity
             print_intro();
 
     // 2.   API HANDLING
-            call_parse_apis();
+            call_parse_APIs();
             System.out.println(results+"\n\n");
 
     // R.   RESOURCES
@@ -81,12 +81,12 @@ public class MyCity
     System.out.println(    "// INTRO //" );
     System.out.println(    "//========"  );
 
-    System.out.println(  "\nMyCity.java"                                                                                  );
-    System.out.println(    " Input:   City name"                                                                          );
-    System.out.println(    " Output:  Local info from 3 independent APIs"                                                 );
-    System.out.printf (    " APIs:    %s & %s, %s, %s\n", api_nams[0], api_nams[1].substring(15), api_nams[2], api_nams[3]);
-    System.out.println(    " Tools:   Exponential Backoff for response statuses 429 and 500s, RegEx for parsing"          );
-    System.out.printf (    " Vars:    RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX                               );
+    System.out.println(  "\nMyCity.java"                                                                                     );
+    System.out.println(    " Input:      City name"                                                                          );
+    System.out.println(    " Output:     Local info from 3 independent APIs"                                                 );
+    System.out.printf (    " APIs:       %s & %s, %s, %s\n", api_nams[0], api_nams[1].substring(15), api_nams[2], api_nams[3]);
+    System.out.println(    " Techniques: Exponential Backoff for response statuses 429 and 500s, RegEx for parsing"          );
+    System.out.printf (    " Constants:  RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX                               );
 
     System.out.println(  "\nHTTP Response Status Codes Key:"                              );
     System.out.println(    " Accepted: 100s=Informtional,  200s=Success,   300s=Redirects");
@@ -103,15 +103,15 @@ public class MyCity
   //===========================
   // 2. API RESPONSE HANDLING ||
   //===========================
-
-  public static void call_parse_apis()
+  
+  public static void call_parse_APIs()
   {
     client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
       case 0:   // OpenWeatherMap Geocoding
         http_build_req(i, city, "", "", "", api_keys[1]);
-        results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1]);
+        results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1].substring(15));
         if (http_call(i))
         {
           parse_elements("state", "country", "lat", "lon");
