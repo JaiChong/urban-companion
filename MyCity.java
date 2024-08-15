@@ -74,17 +74,17 @@ public class MyCity
     System.out.println(    "// INTRO //" );
     System.out.println(    "//========"  );
 
-    System.out.println(  "\nMyCity.java"                                                                                     );
-    System.out.println(    " Input:      City name"                                                                          );
-    System.out.println(    " Output:     Local info from 3 independent APIs"                                                 );
-    System.out.printf (    " APIs:       %s & %s, %s, %s\n", api_nams[0], api_nams[1].substring(15), api_nams[2], api_nams[3]);
-    System.out.println(    " Techniques: Exponential Backoff for response statuses 429 and 500s, RegEx for parsing"          );
-    System.out.printf (    " Constants:  RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX                               );
+    System.out.println(  "\nMyCity.java"                                                                                      );
+    System.out.println(    "  Input:      City name"                                                                          );
+    System.out.println(    "  Output:     Local info from 3 independent APIs"                                                 );
+    System.out.printf (    "  APIs:       %s & %s, %s, %s\n", api_nams[0], api_nams[1].substring(15), api_nams[2], api_nams[3]);
+    System.out.println(    "  Techniques: Exponential Backoff for response statuses 429 and 500s, RegEx for parsing"          );
+    System.out.printf (    "  Constants:  RETRY_BASE=%d, RETRY_MAX=%d\n", RETRY_BASE, RETRY_MAX                               );
 
     System.out.println(  "\nHTTP Response Status Codes Key:"                              );
-    System.out.println(    " Accepted: 100s=Informtional,  200s=Success,   300s=Redirects");
-    System.out.println(    " Rejected: 400s=ClientErr"                                    );
-    System.out.println(    " Retried:  429 =TooManyReqs,   500s=ServerErr"                );
+    System.out.println(    "  Accepted: 100s=Informtional,  200s=Success,   300s=Redirects");
+    System.out.println(    "  Rejected: 400s=ClientErr"                                    );
+    System.out.println(    "  Retried:  429 =TooManyReqs,   500s=ServerErr"                );
 
 
     System.out.println("\n\n//==============");
@@ -101,9 +101,9 @@ public class MyCity
     client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
-      //=======================================
-      // #region 2.0. OpenWeatherMap Geocoding
-      //=======================================
+      //=================================
+      // #region 2.0. OpenWeatherMap (1)
+      //=================================
       case 0:
         http_build_req(i, city, "", "", "", api_keys[1]);
         results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1].substring(15));
@@ -120,19 +120,19 @@ public class MyCity
           lon = api_elements.get("lon");
           results += String.format
           (
-              " Location:         %s, %s%s    \n"
-            + " Coordinates:      %s° N, %s° E\n",
+              "  Location:         %s, %s%s    \n"
+            + "  Coordinates:      %s° N, %s° E\n",
 
             city.replaceAll("%20", " "),  api_elements.get("state"),  api_elements.get("country"),
             lat,                          lon
           );
         }
-        else { results += " Call failed with status " + resp_status + "."; }
+        else { results += "  Call failed with status " + resp_status + "."; }
         break;
         
-      //==================================================
-      // #region 2.1. OpenWeatherMap Current Weather Data
-      //==================================================
+      //=================================
+      // #region 2.1. OpenWeatherMap (2)
+      //=================================
       case 1:
         http_build_req(i, lat, lon, "", "", api_keys[1]);
         if (http_call(i))
@@ -140,20 +140,20 @@ public class MyCity
           parse_elements("description", "humidity", "temp_max", "temp", "temp_min");
           results += String.format
           (
-            " Current Weather:  %s  \n"
-          + " Temp, High:       %.3f°F\n"
-          + " Temp, Current:    %.3f°F\n"
-          + " Temp, Low:        %.3f°F\n"
-          + " Humidity:         %s%%\n",
+            "  Current Weather:  %s  \n"
+          + "  Temp, High:       %.3f°F\n"
+          + "  Temp, Current:    %.3f°F\n"
+          + "  Temp, Low:        %.3f°F\n"
+          + "  Humidity:         %s%%\n",
 
-            api_elements.get("description"),
+            capitalize_first_letters(api_elements.get("description")),
             ((Double.parseDouble(api_elements.get("temp_max")) * 9 / 5) - 459.67),
             ((Double.parseDouble(api_elements.get("temp"    )) * 9 / 5) - 459.67),
             ((Double.parseDouble(api_elements.get("temp_min")) * 9 / 5) - 459.67),
             api_elements.get("humidity")
           );
         }
-        else { results += " Call failed with status " + resp_status + "."; }
+        else { results += "  Call failed with status " + resp_status + "."; }
         break;
 
       //==========================
@@ -164,25 +164,59 @@ public class MyCity
         results += String.format("\n%s:\n", api_nams[i]);
         if (http_call(i))
         {
-          System.out.println(resp.body());
-          parse_elements("element1", "element2", "element3");
-          results += String.format
-          (
-              " Element1: %s\n"
-            + " Element2: %s\n"
-            + " Element3: %s\n",
-
-            api_elements.get("element1"),
-            api_elements.get("element2"),
-            api_elements.get("element3")
+          int num_events = parse_set(
+            "name",
+            "cost",
+            "time_start", "time_end",
+            "business_id", "address1",
+            "event_site_url"
           );
+          for (int j = 1; j <= num_events; j++)
+          {
+            String business_id = "";
+            if (!api_elements.get(j+"_business_id").equals("null"))
+            {
+              business_id = capitalize_first_letters(api_elements.get(j+"_business_id"));
+              if (business_id.lastIndexOf(" "+city) != -1)
+              {
+                business_id = business_id.substring(0, business_id.lastIndexOf(" "+city)) + ", ";
+              }
+            }
+
+            results += String.format
+            (
+                "  %d. %s:\n"
+              + "       Cost:     $%.2f\n"
+              + "       Start:    %s\n%s"
+              + "       Address:  %s%s\n"
+              + "       URL:      %s\n",
+  
+              j,
+              api_elements.get(j+"_name"),
+              !api_elements.get(j+"_cost")       .equals("null")
+                ? Float.valueOf(api_elements.get(j+"_cost"))
+                : 0,
+              (!api_elements.get(j+"_time_start").equals("null") && api_elements.get(j+"_time_start").length() >= 16)
+                ?   api_elements.get(j+"_time_start").substring( 0, 10) + ", "
+                  + api_elements.get(j+"_time_start").substring(11, 16)
+                : "",
+              (!api_elements.get(j+"_time_end")  .equals("null") && api_elements.get(j+"_time_end")  .length() >= 16)
+                ? "       End:      "
+                  + api_elements.get(j+"_time_end")  .substring( 0, 10) + ", "
+                  + api_elements.get(j+"_time_end")  .substring(11, 16) + "\n"
+                : "",
+              business_id,
+              api_elements.get(j+"_address1"),
+              api_elements.get(j+"_event_site_url")  .substring(0, api_elements.get(j+"_event_site_url").indexOf('?'))
+            );
+          }
         }
-        else { results += " Call failed with status " + resp_status + ".\n"; }
+        else { results += "  Call failed with status " + resp_status + ".\n"; }
         break;
 
-      //==============================================
-      // #region 2.3. TomTom Traffic Incident Details
-      //==============================================
+      //=============================
+      // #region 2.3. TomTom Traffic
+      //=============================
       case 3:
         double num_lon = Double.parseDouble(lon);
         double num_lat = Double.parseDouble(lat);
@@ -195,20 +229,19 @@ public class MyCity
         results += String.format("\n%s:\n", api_nams[i]);
         if (http_call(i))
         {
-          parse_elements("element1", "element2", "element3");
+          int num_incidents = parse_set("element1", "element2", "element3");
           results += String.format
           (
-              " Element1: %s\n"
-            + " Element2: %s\n"
-            + " Element3: %s\n",
+              "  Element1:  %s\n"
+            + "  Element2:  %s\n"
+            + "  Element3:  %s\n",
 
             api_elements.get("element1"),
             api_elements.get("element2"),
             api_elements.get("element3")
           );
         }
-        else { results += " Call failed with status " + resp_status + "."; }
-        System.out.println(resp.body());
+        else { results += "  Call failed with status " + resp_status + "."; }
         break;
     }
   }
@@ -227,9 +260,9 @@ public class MyCity
   // https://developer.tomtom.com/traffic-api/documentation/traffic-incidents/incident-details
 
 
-  //===============================
-  // #region R.1. Class-scope Vars
-  //===============================
+  //=========================
+  // #region R.1. Class Vars
+  //=========================
 
   // HTTP Calls
   public static HttpClient           client;
@@ -244,8 +277,8 @@ public class MyCity
   {
     "OpenWeatherMap Geocoding",
     "OpenWeatherMap Current Weather Data",
-    "Yelp Fusion",
-    "TomTom Traffic Incident Details"
+    "Yelp Fusion Events",
+    "TomTom Traffic Incidents"
   };
   public static String[] api_urls =
   {
@@ -254,7 +287,6 @@ public class MyCity
     "https://api.yelp.com/v3/events?sort_on=time_start&latitude=%s&longitude=%s",
     // "https://api.yelp.com/v3/categories/events?sort_on=time_start&latitude=%s&longitude=%s",
     // "https://api.yelp.com/v3/categories/restaurants?latitude=%s&longitude=%s",
-    // "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=%%7Bincidents%%7Btype,geometry%%7Btype,coordinates%%7D,properties%%7BiconCategory%%7D%%7D%%7D&language=en-GB&t=1111&timeValidityFilter=present"
     "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=%%7Bincidents%%7Bproperties%%7BiconCategory,magnitudeOfDelay,events%%7Bcode,description,iconCategory%%7D,startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime%%7D%%7D%%7D&language=en-US&timeValidityFilter=present"
   };
 
@@ -271,9 +303,9 @@ public class MyCity
     +   "//==========  \n"  ;
   
 
-  //==============================
-  // #region R.2. HTTP Call Funcs
-  //==============================
+  //=========================
+  // #region R.2. HTTP Funcs
+  //=========================
   
   public static void http_build_req (int num, String arg1, String arg2, String arg3, String arg4, String arg5)
   {
@@ -299,7 +331,7 @@ public class MyCity
   {
     System.out.println("\nCalling " + api_nams[num] + " ...");
     
-    // try client.send()
+    // client.send()
     try
     {
       // for (4 retries or until success)
@@ -334,15 +366,15 @@ public class MyCity
         }
       }
     }
-    catch (IOException e)          { System.out.println("\nERROR: IOException");          System.exit(1); }
-    catch (InterruptedException e) { System.out.println("\nERROR: InterruptedException"); System.exit(1); }
+    catch (IOException e)          { System.out.println("\n  ERROR: IOException");          System.exit(1); }
+    catch (InterruptedException e) { System.out.println("\n  ERROR: InterruptedException"); System.exit(1); }
     return resp_status < 400;
   }
 
 
-  //================================
-  // #region R.3. RegEx Parse Funcs
-  //================================
+  //==========================
+  // #region R.3. RegEx Funcs
+  //==========================
 
   public static void parse_elements(String... elements)
   {
@@ -355,18 +387,42 @@ public class MyCity
       if (matcher.find()) { api_elements.put(element, matcher.group(1)); }
     }
   }
-  
-  public static void parse_failure()
+
+  public static int parse_set(String... elements)
   {
     Pattern pattern;
     Matcher matcher;
+    int count = 0;
+    for (String element : elements)
+    {
+      count = 0;
+      pattern = Pattern.compile(element + "\": \"?(.+?)\"?(?:,|}|])");
+      matcher = pattern.matcher(resp.body());
+      while (matcher.find()) { api_elements.put(((++count)+"_"+element), matcher.group(1)); }
+    }
+    return count;
+  }
+
+  public static String capitalize_first_letters(String element)
+  {
+    Pattern pattern = Pattern.compile("( |-)?(\\w)(\\w+)?");
+    Matcher matcher = pattern.matcher(element);
     
-    pattern = Pattern.compile("code\": \"(.+?)\"?(?:,)");
-    matcher = pattern.matcher(resp.body());
+    StringBuilder res = new StringBuilder();
+    if    (matcher.find()) { matcher.appendReplacement(res,       (matcher.group(2).toUpperCase() + matcher.group(3))); }   // fencepost
+    while (matcher.find()) { matcher.appendReplacement(res, " " + (matcher.group(2).toUpperCase() + matcher.group(3))); }
+    return res.toString();
+  }
+  
+  public static void parse_failure()
+  {
+    Pattern pattern = Pattern.compile("code\": \"(.+?)\"?(?:,)");
+    Matcher matcher = pattern.matcher(resp.body());
+
     if (matcher.find()) {
       String code = matcher.group(1);
       pattern = Pattern.compile("(description|message)\": \"(.+?)\\.\"");
-      matcher = pattern.matcher(resp.body());
+      matcher = pattern.matcher(resp.body());  
       if (matcher.find()) { api_elements.put("failure", (code + ": " + matcher.group(2))); }
     }
     else
