@@ -27,8 +27,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.URI;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.AbstractMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,7 +70,7 @@ public class MyCity
     }
     
     // Store args
-                                  city        = args[0].replaceAll(" ", "%20");   // Accounts for URL encoding
+                                  city        = args[0];
     for (int i = 1; i < 4; i++) { api_keys[i] = args[i]; }
   }
 
@@ -105,26 +111,25 @@ public class MyCity
       // #region 2.0. OpenWeatherMap (1)
       //=================================
       case 0:
-        http_build_req(i, city, "", "", "", api_keys[1]);
+        http_build_req(i, city.replaceAll(" ", "%20"), "", "", "", api_keys[1]);
         results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1].substring(15));
         if (http_call(i))
         {
-          parse_elements("state", "country", "lat", "lon");
-          api_elements.replace("state",
-          (
-            (api_elements.get("state") != null)
-            ? api_elements.get("state") + ", "
-            : ""
-          ));
-          lat = api_elements.get("lat");
-          lon = api_elements.get("lon");
+          parse_elements(i, "state", "country", "lat", "lon");
+          lat      = api_elements.get("lat");
+          lon      = api_elements.get("lon");
           results += String.format
           (
               "  Location:         %s, %s%s    \n"
             + "  Coordinates:      %s° N, %s° E\n",
 
-            city.replaceAll("%20", " "),  api_elements.get("state"),  api_elements.get("country"),
-            lat,                          lon
+            city,
+            (api_elements.get("state") != null)
+              ? api_elements.get("state") + ", "
+              : "",
+            api_elements.get("country"),
+            lat,
+            lon
           );
         }
         else { results += "  Call failed with status " + resp_status + "."; }
@@ -137,7 +142,7 @@ public class MyCity
         http_build_req(i, lat, lon, "", "", api_keys[1]);
         if (http_call(i))
         {
-          parse_elements("description", "humidity", "temp_max", "temp", "temp_min");
+          parse_elements(i, "description", "humidity", "temp_max", "temp", "temp_min");
           results += String.format
           (
             "  Current Weather:  %s  \n"
@@ -164,7 +169,8 @@ public class MyCity
         results += String.format("\n%s:\n", api_nams[i]);
         if (http_call(i))
         {
-          int num_events = parse_set(
+          int num_events = parse_elements(
+            i,
             "name",
             "cost",
             "time_start", "time_end",
@@ -229,17 +235,18 @@ public class MyCity
         results += String.format("\n%s:\n", api_nams[i]);
         if (http_call(i))
         {
-          int num_incidents = parse_set("element1", "element2", "element3");
-          results += String.format
-          (
-              "  Element1:  %s\n"
-            + "  Element2:  %s\n"
-            + "  Element3:  %s\n",
-
-            api_elements.get("element1"),
-            api_elements.get("element2"),
-            api_elements.get("element3")
-          );
+          int total_incidents = parse_elements(i, "description");
+          List<Map.Entry<String, Integer>> traffic_sorted = new ArrayList<>(traffic_counts.entrySet());
+          traffic_sorted.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+          traffic_sorted.add(new AbstractMap.SimpleEntry<>("Total", total_incidents));
+          
+          for (Map.Entry<String, Integer> entry : traffic_sorted)
+          {
+            String formatted = String.format("  %%%ds  %%%dd\n",
+              (max_length+1) * -1,
+              (int)(Math.log10(max_incidents) + 1));
+            results += String.format(formatted, entry.getKey()+":", entry.getValue());
+          }
         }
         else { results += "  Call failed with status " + resp_status + "."; }
         break;
@@ -296,12 +303,18 @@ public class MyCity
   public  static String   lon      = "-1";
   
   // API Responses
-  public static Map<String, String> api_elements = new HashMap<String, String>();
-  public static String              results      = 
-    "\n\n//============\n"
-    +   "// RESULTS // \n"
-    +   "//==========  \n"  ;
-  
+  public static Map<String, String>  api_elements   = new HashMap<String, String>();
+  public static Map<String, Integer> traffic_counts = new HashMap<String, Integer>();
+  public static int                  max_length     = 0;
+  public static int                  max_incidents  = 0;
+  public static String               results        = String.format
+  (
+    "\n\n//====================\n"
+    +   "// RESULTS (%s) // \n"
+    +   "//==================  \n",
+    LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+  );
+    
 
   //=========================
   // #region R.2. HTTP Funcs
@@ -376,29 +389,35 @@ public class MyCity
   // #region R.3. RegEx Funcs
   //==========================
 
-  public static void parse_elements(String... elements)
+  public static int parse_elements(int num, String... elements)
   {
-    Pattern pattern;
-    Matcher matcher;
-    for (String element : elements)
-    {
-      pattern = Pattern.compile(element + "\":\"?(.+?)\"?(?:,|}|])");
-      matcher = pattern.matcher(resp.body());
-      if (matcher.find()) { api_elements.put(element, matcher.group(1)); }
-    }
-  }
-
-  public static int parse_set(String... elements)
-  {
-    Pattern pattern;
-    Matcher matcher;
     int count = 0;
+    Pattern pattern;
+    Matcher matcher;
     for (String element : elements)
     {
       count = 0;
-      pattern = Pattern.compile(element + "\": \"?(.+?)\"?(?:,|}|])");
+      pattern = Pattern.compile(element + "\": ?\"?(.+?)\"?(?:,|}|])");
       matcher = pattern.matcher(resp.body());
-      while (matcher.find()) { api_elements.put(((++count)+"_"+element), matcher.group(1)); }
+      while (matcher.find())
+      {
+        switch (num)
+        {
+          case 0:
+          case 1:
+            api_elements.put(element,                 matcher.group(1));
+            break;
+          case 2:
+            api_elements.put(((++count)+"_"+element), matcher.group(1));
+            break;
+          case 3:
+            traffic_counts.put(matcher.group(1), (traffic_counts.getOrDefault(matcher.group(1), 0) + 1));
+            count++;
+            max_length    = Math.max(max_length,    matcher.group(1).length());
+            max_incidents = Math.max(max_incidents, traffic_counts.get(matcher.group(1)));
+            break;
+        }
+      }
     }
     return count;
   }
