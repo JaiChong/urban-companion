@@ -35,31 +35,24 @@ import java.util.regex.Pattern;
 
 public class MyCity
 {
-  //================================
-  // 0. MAIN() / TABLE OF CONTENTS ||
-  //================================
-  
+  //===================
+  // #region 0. MAIN()
+  //===================
   public static void main(String[] args)
   {
-    // 1.   PROGRAM SETUP
-            process_args(args);
-            print_intro();
+    // 1. PROGRAM SETUP
+    process_args(args);
+    print_intro();
 
-    // 2.   API HANDLING
-            call_parse_APIs();
-            System.out.println(results+"\n\n");
-
-    // R.   RESOURCES
-    // R.0. API Documentation
-    // R.1. Class-scope Variables
-    // R.2. HTTP Call Functions
-    // R.3. RegEx Parse Function
+    // 2. API HANDLING
+    call_parse_APIs();
+    System.out.println(results+"\n\n");
   }
 
 
-  //===================
-  // 1. PROGRAM SETUP ||
-  //===================
+  //==========================
+  // #region 1. PROGRAM SETUP
+  //==========================
 
   public static void process_args(String[] args)
   {
@@ -100,16 +93,18 @@ public class MyCity
   }
 
 
-  //===========================
-  // 2. API RESPONSE HANDLING ||
-  //===========================
-  
+  //=========================
+  // #region 2. API HANDLING
+  //=========================
   public static void call_parse_APIs()
   {
     client  = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
     for (int i = 0; i < 4; i++) switch (i)
     {
-      case 0:   // OpenWeatherMap Geocoding
+      //=======================================
+      // #region 2.0. OpenWeatherMap Geocoding
+      //=======================================
+      case 0:
         http_build_req(i, city, "", "", "", api_keys[1]);
         results += String.format("\n%s & %s:\n", api_nams[0], api_nams[1].substring(15));
         if (http_call(i))
@@ -135,7 +130,10 @@ public class MyCity
         else { results += " Call failed with status " + resp_status + "."; }
         break;
         
-        case 1:   // OpenWeatherMap Current Weather Data
+      //==================================================
+      // #region 2.1. OpenWeatherMap Current Weather Data
+      //==================================================
+      case 1:
         http_build_req(i, lat, lon, "", "", api_keys[1]);
         if (http_call(i))
         {
@@ -158,38 +156,15 @@ public class MyCity
         else { results += " Call failed with status " + resp_status + "."; }
         break;
 
-      case 2:   // Yelp Fusion
-        // // Provided call syntax, using a package
-        // OkHttpClient client = new OkHttpClient();
-        // Request request = new Request.Builder()
-        //   .url("https://api.yelp.com/v3/events?limit=3&sort_by=desc&sort_on=popularity")
-        //   .get()
-        //   .addHeader("accept", "application/json")
-        //   .build();
-        // Response response = client.newCall(request).execute();
-
-        // // Debug
-        // req = HttpRequest.newBuilder()
-        //   .uri(URI.create("https://api.yelp.com/v3/events?locale=en_US"))
-        //   .GET()
-        //   .header("User-Agent", "")            // didn't work
-        //   .header("Accept", "application/json")
-        //   .header("Authorization", "Bearer "+api_keys[i])
-        //   .build();
-        // try
-        // {
-        //   resp = client.send(req, BodyHandlers.ofString());
-        //   resp_status = resp.statusCode();
-        //   System.out.println(resp_status);    // Breakpoint here
-        // }
-        // catch (IOException e)          { System.out.println("IO");          System.exit(1); }
-        // catch (InterruptedException e) { System.out.println("Interrupted"); System.exit(1); }
-
+      //==========================
+      // #region 2.2. Yelp Fusion
+      //==========================
+      case 2:
         http_build_req_Yelp(i, lat, lon, api_keys[i]);
         results += String.format("\n%s:\n", api_nams[i]);
-        if (http_call(i))   // FIXME: 403 Forbidden access to resource
+        if (http_call(i))
         {
-          // System.out.println(resp.body());
+          System.out.println(resp.body());
           parse_elements("element1", "element2", "element3");
           results += String.format
           (
@@ -205,19 +180,21 @@ public class MyCity
         else { results += " Call failed with status " + resp_status + ".\n"; }
         break;
 
-      case 3:   // TomTom Traffic Incident Details
-        double num_lat = Double.parseDouble(lat);
+      //==============================================
+      // #region 2.3. TomTom Traffic Incident Details
+      //==============================================
+      case 3:
         double num_lon = Double.parseDouble(lon);
+        double num_lat = Double.parseDouble(lat);
         http_build_req
         (
           i,                            api_keys[i],
-          Double.toString(num_lat-0.5), Double.toString(num_lat-0.5),
-          Double.toString(num_lat+0.5), Double.toString(num_lon+0.5)
+          Double.toString(num_lon-0.5), Double.toString(num_lat-0.5),
+          Double.toString(num_lon+0.5), Double.toString(num_lat+0.5)
         );
         results += String.format("\n%s:\n", api_nams[i]);
-        if (http_call(i))   // FIXME: 403 Forbidden access to resource
+        if (http_call(i))
         {
-          // System.out.println(resp.body());
           parse_elements("element1", "element2", "element3");
           results += String.format
           (
@@ -231,28 +208,28 @@ public class MyCity
           );
         }
         else { results += " Call failed with status " + resp_status + "."; }
+        System.out.println(resp.body());
         break;
-        
     }
   }
 
 
-  //===============
-  // R. RESOURCES ||
-  //===============
+  //======================
+  // #region R. RESOURCES
+  //======================
 
-  //===========================
-  // R.0. API Documentation //
-  //=========================
-
+  //=======================
+  // #region R.0. API Docs
+  //=======================
   // https://openweathermap.org/api/geocoding-api#direct
   // https://openweathermap.org/current
   // https://docs.developer.yelp.com/reference/v3_events_search
   // https://developer.tomtom.com/traffic-api/documentation/traffic-incidents/incident-details
 
+
   //===============================
-  // R.1. Class-scope Variables //
-  //=============================
+  // #region R.1. Class-scope Vars
+  //===============================
 
   // HTTP Calls
   public static HttpClient           client;
@@ -277,8 +254,10 @@ public class MyCity
     "https://api.yelp.com/v3/events?sort_on=time_start&latitude=%s&longitude=%s",
     // "https://api.yelp.com/v3/categories/events?sort_on=time_start&latitude=%s&longitude=%s",
     // "https://api.yelp.com/v3/categories/restaurants?latitude=%s&longitude=%s",
-    "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=&rcub;incidents&rcub;properties&rcub;iconCategory,magnitudeOfDelay,events&rcub;code,description,iconCategory&lcub;,startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime&lcub;&lcub;&lcub;&language=en-US&timeValidityFilter=present,future"
+    // "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=%%7Bincidents%%7Btype,geometry%%7Btype,coordinates%%7D,properties%%7BiconCategory%%7D%%7D%%7D&language=en-GB&t=1111&timeValidityFilter=present"
+    "https://api.tomtom.com/traffic/services/5/incidentDetails?key=%s&bbox=%s,%s,%s,%s&fields=%%7Bincidents%%7Bproperties%%7BiconCategory,magnitudeOfDelay,events%%7Bcode,description,iconCategory%%7D,startTime,endTime,from,to,length,delay,roadNumbers,timeValidity,probabilityOfOccurrence,numberOfReports,lastReportTime%%7D%%7D%%7D&language=en-US&timeValidityFilter=present"
   };
+
   public  static String   city;                     // args[0]
   private static String[] api_keys = new String[4]; // { null, args[1], args[2], args[3] }
   public  static String   lat      = "-1";
@@ -290,10 +269,11 @@ public class MyCity
     "\n\n//============\n"
     +   "// RESULTS // \n"
     +   "//==========  \n"  ;
+  
 
-  //=============================
-  // R.2. HTTP Call Functions //
-  //===========================
+  //==============================
+  // #region R.2. HTTP Call Funcs
+  //==============================
   
   public static void http_build_req (int num, String arg1, String arg2, String arg3, String arg4, String arg5)
   {
@@ -310,6 +290,7 @@ public class MyCity
       .uri(URI.create(String.format(api_urls[num], arg1, arg2)))
       .header("Accept", "application/json")
       .header("Authorization", "Bearer " + hdr_key)
+      // .method("GET", HttpRequest.BodyPublishers.noBody())
       .GET()
       .build();
   }
@@ -334,16 +315,21 @@ public class MyCity
         }
         else
         {
-          System.out.print("Failure");
+          System.out.println("Failure.");
+          parse_failure();
+          if (api_elements.get("failure") != null)
+          {
+            System.out.printf("  %s.\n", api_elements.get("failure"));
+          }
+          
           if (retry < RETRY_MAX && (resp_status >= 500 || resp_status == 429))
           {
-            System.out.printf(", retrying in %d seconds ...\n", (RETRY_BASE ^ retry));
+            System.out.printf("  Retrying in %d seconds ...\n", (RETRY_BASE ^ retry));
             Thread.sleep(1000 * (RETRY_BASE ^ retry));  // 1000ms*(2^n) -> 1s, 2s, 4s, 8s, give up
           }
           else
           {
-            System.out.println(".");
-            retry = RETRY_MAX;                            // exit loop
+            retry = RETRY_MAX;                          // exit loop
           }
         }
       }
@@ -353,9 +339,10 @@ public class MyCity
     return resp_status < 400;
   }
 
-  //==============================
-  // R.3. RegEx Parse Function //
-  //============================
+
+  //================================
+  // #region R.3. RegEx Parse Funcs
+  //================================
 
   public static void parse_elements(String... elements)
   {
@@ -363,9 +350,31 @@ public class MyCity
     Matcher matcher;
     for (String element : elements)
     {
-      pattern = Pattern.compile(element +"\":\"?(.+?)\"?(?:,|}|])");
+      pattern = Pattern.compile(element + "\":\"?(.+?)\"?(?:,|}|])");
       matcher = pattern.matcher(resp.body());
       if (matcher.find()) { api_elements.put(element, matcher.group(1)); }
     }
+  }
+  
+  public static void parse_failure()
+  {
+    Pattern pattern;
+    Matcher matcher;
+    
+    pattern = Pattern.compile("code\": \"(.+?)\"?(?:,)");
+    matcher = pattern.matcher(resp.body());
+    if (matcher.find()) {
+      String code = matcher.group(1);
+      pattern = Pattern.compile("(description|message)\": \"(.+?)\\.\"");
+      matcher = pattern.matcher(resp.body());
+      if (matcher.find()) { api_elements.put("failure", (code + ": " + matcher.group(2))); }
+    }
+    else
+    {
+      pattern = Pattern.compile("<h\\d>(.+?)</h\\d>");
+      matcher = pattern.matcher(resp.body());
+      if (matcher.find()) { api_elements.put("failure", matcher.group(1)); }
+    }
+
   }
 }
